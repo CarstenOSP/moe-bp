@@ -14,7 +14,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-os.environ.setdefault("HF_HOME", "/scr/cportner/hf")
 
 
 def find_routers(model, num_experts):

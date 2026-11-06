@@ -1,1 +1,4 @@
 traces/
+results/download_*.log
+__pycache__/
+*.pyc

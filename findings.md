@@ -1,16 +1,16 @@
 # Preliminary trace findings: OLMoE-1B-7B and DeepSeek-V2-Lite (2025-11-06)
 
-*All numbers below come from the project conda env `moe-bp` (Python 3.12, torch 2.15, transformers 5.22).
-Traces first collected under the base env (transformers 4.57) are kept in `traces/tf457_py314/`; on
-identical prefill input the two envs agree on the top-k set for 95.5% of token-layer pairs (99.4% expert
-overlap), and OLMoE numbers moved by at most 0.5 points. DeepSeek's online-table numbers moved by ~3
-points because greedy continuations diverge after bf16 tie flips and those predictors learn from the
-token sequence; this is the sampling noise of a 40-prompt trace.*
+*Reproducibility: numbers come from Python 3.12, torch 2.15, transformers 5.22 (see `env/`). An earlier
+run under transformers 4.57 agreed on the top-k expert set for 95.5% of token-layer pairs on identical
+prefill input (99.4% expert overlap); OLMoE numbers moved by at most 0.5 points between the two, and
+DeepSeek's online-table numbers by ~3 points, because greedy continuations diverge after bf16 tie flips
+and those predictors learn from the token sequence. Treat differences of a few points as noise at this
+trace size.*
 
 **Setup.** OLMoE-1B-7B-0924 (16 MoE layers, 64 experts, top-8), bf16 on one GPU. Three workloads
 (WikiText-103 prose, GSM8K math, HumanEval code), 60 prompts each, prefill + 160 greedy decode tokens at
 batch 1. 51.6k tokens total, 28.8k of them decode tokens. All numbers below are **recall@8 on decode
-tokens** = fraction of the true top-8 experts that the method had ready. Traces and scripts: `moe-bp/`.
+tokens** = fraction of the true top-8 experts that the method had ready. Scripts are in this repo; traces are not committed and regenerate with the commands in `README.md`.
 
 ## Headline
 
