@@ -1,7 +1,6 @@
 # moe-bp: expert "branch prediction" for MoEs — trace study
 
-Preliminary trace testing for the 828 project (see `../828 project pitch.pdf` and
-`../preliminary-testing-plan.md`).
+Preliminary trace testing for the 828 project.
 
 ## Layout
 - `collect/collect_traces.py` — hooks every router Linear, runs prefill + greedy decode at batch 1,
