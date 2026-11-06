@@ -1,0 +1,53 @@
+model=allenai/OLMoE-1B-7B-0924 tokens=21903 decode=9600 layers=16 experts=64 k=8 workloads=[np.str_('wikitext')]
+
+[1] expert usage skew (decode tokens)
+  normalized entropy per layer: min=0.93 mean=0.95 max=0.98
+  traffic covered by top-16 experts: mean=0.46; by top-32: mean=0.73
+
+[2] caching baselines
+  LRU cache of  8 experts/layer: hit-rate=0.385
+  LRU cache of 16 experts/layer: hit-rate=0.543
+  LRU cache of 24 experts/layer: hit-rate=0.674
+  LRU cache of 32 experts/layer: hit-rate=0.777
+  LRU cache of 48 experts/layer: hit-rate=0.948
+  same experts as previous token (per layer, recall@8): 0.385
+
+[3] cross-layer router heuristic: layer T-d's input through layer T's router
+  d=1: recall@8=0.832  recall@16 (prefetch 2k)=0.964
+  d=2: recall@8=0.772  recall@16 (prefetch 2k)=0.931
+  d=4: recall@8=0.664  recall@16 (prefetch 2k)=0.850
+  d=8: recall@8=0.519  recall@16 (prefetch 2k)=0.705
+
+[4] online counter tables (learn as they run, no training)
+  xlayer-set d=1                         recall@8=0.420  table=6062KB
+  xlayer-set d=2                         recall@8=0.408  table=5737KB
+  xlayer-set d=4                         recall@8=0.386  table=5048KB
+  xlayer-set d=8                         recall@8=0.366  table=3598KB
+  token-id (all layers)                  recall@8=0.675  table=1698KB
+  token-id (all layers) 16KB             recall@8=0.406  table=16KB
+  token-id (all layers) 64KB             recall@8=0.487  table=64KB
+  token-id (all layers) 256KB            recall@8=0.569  table=256KB
+  prev-token-set (next token)            recall@8=0.346  table=6360KB
+  bimodal (global freq)                  recall@8=0.379  table=0KB
+
+[4b] pairwise correlating predictor (each source expert votes for target experts) + tournament
+  d=1        pairwise(32KB)=0.656  pairwise prefetch-2k=0.860  token-id(64KB)=0.494  tournament=0.651
+  d=2        pairwise(32KB)=0.646  pairwise prefetch-2k=0.855  token-id(64KB)=0.499  tournament=0.642
+  d=4        pairwise(32KB)=0.623  pairwise prefetch-2k=0.842  token-id(64KB)=0.510  tournament=0.618
+  d=8        pairwise(32KB)=0.567  pairwise prefetch-2k=0.796  token-id(64KB)=0.542  tournament=0.576
+  next-token pairwise(32KB)=0.501  pairwise prefetch-2k=0.733  token-id(64KB)=0.487  tournament=0.512
+
+[5] crude RAM->GPU fetch cost per decode token (expert=12.6MB, PCIe 25GB/s, 0.50ms/miss)
+  on-demand (no cache)       64.4 ms/token
+  LRU 32/layer               14.3 ms/token
+  heuristic d=1              10.8 ms/token
+  heuristic d=4              21.6 ms/token
+  table xlayer-set d=1       37.4 ms/token
+  table token-id             20.9 ms/token
+  pairwise d=1               22.2 ms/token
+  pairwise d=4               24.3 ms/token
+  tournament d=1             22.5 ms/token
+  tournament d=4             24.6 ms/token
+  oracle                      0.0 ms/token
+
+saved results/wikitext/headroom_OLMoE-1B-7B-0924.json and .png

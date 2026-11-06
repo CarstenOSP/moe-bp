@@ -1,0 +1,46 @@
+model=deepseek-ai/DeepSeek-V2-Lite tokens=30596 decode=15254 layers=26 experts=64 k=6 workloads=[np.str_('gsm8k'), np.str_('humaneval'), np.str_('wikitext')]
+[1] expert usage skew (decode tokens)
+  normalized entropy per layer: min=0.96 mean=0.98 max=0.99
+  traffic covered by top-16 experts: mean=0.37; by top-32: mean=0.64
+[2] caching baselines
+  LRU cache of  6 experts/layer: hit-rate=0.271
+  LRU cache of 16 experts/layer: hit-rate=0.474
+  LRU cache of 24 experts/layer: hit-rate=0.596
+  LRU cache of 32 experts/layer: hit-rate=0.700
+  LRU cache of 48 experts/layer: hit-rate=0.895
+  same experts as previous token (per layer, recall@6): 0.271
+[3] cross-layer router heuristic: layer T-d's input through layer T's router
+  d=1: recall@6=0.799  recall@12 (prefetch 2k)=0.955
+  d=2: recall@6=0.725  recall@12 (prefetch 2k)=0.906
+  d=4: recall@6=0.624  recall@12 (prefetch 2k)=0.815
+  d=8: recall@6=0.496  recall@12 (prefetch 2k)=0.678
+[4] online counter tables (learn as they run, no training)
+  xlayer-set d=1                         recall@6=0.274  table=15109KB
+  xlayer-set d=2                         recall@6=0.270  table=14484KB
+  xlayer-set d=4                         recall@6=0.262  table=13113KB
+  xlayer-set d=8                         recall@6=0.261  table=10308KB
+  token-id (all layers)                  recall@6=0.543  table=2745KB
+  token-id (all layers) 16KB             recall@6=0.297  table=16KB
+  token-id (all layers) 64KB             recall@6=0.372  table=64KB
+  token-id (all layers) 256KB            recall@6=0.442  table=256KB
+  prev-token-set (next token)            recall@6=0.204  table=15602KB
+  bimodal (global freq)                  recall@6=0.235  table=1KB
+[4b] pairwise correlating predictor (each source expert votes for target experts) + tournament
+  d=1        pairwise(52KB)=0.526  pairwise prefetch-2k=0.723  token-id(64KB)=0.369  tournament=0.523
+  d=2        pairwise(52KB)=0.515  pairwise prefetch-2k=0.712  token-id(64KB)=0.369  tournament=0.511
+  d=4        pairwise(52KB)=0.492  pairwise prefetch-2k=0.690  token-id(64KB)=0.367  tournament=0.488
+  d=8        pairwise(52KB)=0.458  pairwise prefetch-2k=0.654  token-id(64KB)=0.371  tournament=0.453
+  next-token pairwise(52KB)=0.369  pairwise prefetch-2k=0.557  token-id(64KB)=0.372  tournament=0.384
+[5] crude RAM->GPU fetch cost per decode token (expert=17.3MB, PCIe 25GB/s, 0.69ms/miss)
+  on-demand (no cache)      108.0 ms/token
+  LRU 32/layer               32.4 ms/token
+  heuristic d=1              21.7 ms/token
+  heuristic d=4              40.6 ms/token
+  table xlayer-set d=1       78.4 ms/token
+  table token-id             49.4 ms/token
+  pairwise d=1               51.2 ms/token
+  pairwise d=4               54.8 ms/token
+  tournament d=1             51.5 ms/token
+  tournament d=4             55.3 ms/token
+  oracle                      0.0 ms/token
+saved results/headroom_DeepSeek-V2-Lite.json and .png

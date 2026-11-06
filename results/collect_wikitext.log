@@ -1,0 +1,18 @@
+Loading weights:   0%|          | 0/179 [00:00<?, ?it/s]Loading weights:   2%|▏         | 4/179 [00:00<00:06, 26.20it/s]Loading weights:   4%|▍         | 7/179 [00:02<01:11,  2.40it/s]Loading weights:   8%|▊         | 15/179 [00:03<00:40,  4.04it/s]Loading weights:   9%|▉         | 16/179 [00:06<01:19,  2.06it/s]Loading weights:  15%|█▍        | 26/179 [00:07<00:40,  3.82it/s]Loading weights:  15%|█▌        | 27/179 [00:09<01:07,  2.27it/s]Loading weights:  21%|██        | 37/179 [00:11<00:39,  3.63it/s]Loading weights:  21%|██        | 38/179 [00:13<01:01,  2.28it/s]Loading weights:  27%|██▋       | 48/179 [00:14<00:35,  3.67it/s]Loading weights:  27%|██▋       | 49/179 [00:17<00:54,  2.38it/s]Loading weights:  33%|███▎      | 59/179 [00:18<00:32,  3.72it/s]Loading weights:  34%|███▎      | 60/179 [00:20<00:48,  2.45it/s]Loading weights:  39%|███▉      | 70/179 [00:22<00:29,  3.75it/s]Loading weights:  40%|███▉      | 71/179 [00:24<00:44,  2.44it/s]Loading weights:  45%|████▌     | 81/179 [00:25<00:26,  3.73it/s]Loading weights:  46%|████▌     | 82/179 [00:28<00:40,  2.42it/s]Loading weights:  51%|█████▏    | 92/179 [00:29<00:23,  3.65it/s]Loading weights:  52%|█████▏    | 93/179 [00:31<00:34,  2.47it/s]Loading weights:  58%|█████▊    | 103/179 [00:32<00:19,  3.82it/s]Loading weights:  58%|█████▊    | 104/179 [00:35<00:30,  2.43it/s]Loading weights:  64%|██████▎   | 114/179 [00:36<00:17,  3.65it/s]Loading weights:  64%|██████▍   | 115/179 [00:39<00:26,  2.38it/s]Loading weights:  70%|██████▉   | 125/179 [00:40<00:15,  3.58it/s]Loading weights:  70%|███████   | 126/179 [00:42<00:21,  2.44it/s]Loading weights:  76%|███████▌  | 136/179 [00:44<00:11,  3.63it/s]Loading weights:  77%|███████▋  | 137/179 [00:46<00:18,  2.32it/s]Loading weights:  82%|████████▏ | 147/179 [00:48<00:09,  3.48it/s]Loading weights:  83%|████████▎ | 148/179 [00:50<00:13,  2.31it/s]Loading weights:  88%|████████▊ | 158/179 [00:51<00:05,  3.56it/s]Loading weights:  89%|████████▉ | 159/179 [00:54<00:08,  2.33it/s]Loading weights:  94%|█████████▍| 169/179 [00:55<00:02,  3.55it/s]Loading weights:  95%|█████████▍| 170/179 [00:56<00:03,  2.84it/s]Loading weights: 100%|██████████| 179/179 [00:56<00:00,  3.14it/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[transformers] Ignoring clean_up_tokenization_spaces=True for BPE tokenizer GPTNeoXTokenizer. The clean_up_tokenization post-processing step is designed for WordPiece tokenizers and is destructive for BPE (it strips spaces before punctuation). Set clean_up_tokenization_spaces=False to suppress this warning, or set clean_up_tokenization_spaces_for_bpe_even_though_it_will_corrupt_output=True to force cleanup anyway.
+model=allenai/OLMoE-1B-7B-0924 experts=64 topk=8 moe_layers=16 first=model.layers.0.mlp.gate
+workload=wikitext prompts=60
+  seq 0/60 tokens=344 elapsed=4s
+  seq 5/60 tokens=2176 elapsed=22s
+  seq 10/60 tokens=3827 elapsed=50s
+  seq 15/60 tokens=5574 elapsed=79s
+  seq 20/60 tokens=7501 elapsed=108s
+  seq 25/60 tokens=9055 elapsed=136s
+  seq 30/60 tokens=11003 elapsed=165s
+  seq 35/60 tokens=12787 elapsed=193s
+  seq 40/60 tokens=14606 elapsed=222s
+  seq 45/60 tokens=16498 elapsed=250s
+  seq 50/60 tokens=18514 elapsed=279s
+  seq 55/60 tokens=20368 elapsed=307s
+saved traces/OLMoE-1B-7B-0924__wikitext.npz tokens=21903 layers=16 experts=64 in 338s
