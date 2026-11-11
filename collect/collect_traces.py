@@ -3,7 +3,7 @@
 For every token and every MoE layer we record:
   * full router logits (float16)                       -> offline top-k, margins, entropy
   * "cross-layer" heuristic predictions: the router input x of layer l pushed
-    through the router weights of layers l+1..l+H (Fate/HOBBIT-style) -> top-2k ids
+    through the router weights of layers l+1..l+H (Fate/HOBBIT-style) -> top-2k ids and their logits
   * token id, sequence id, position, phase (0 = prefill, 1 = decode)
 
 Decode is a manual greedy loop at batch size 1 so each forward pass == one token
@@ -45,6 +45,7 @@ class Recorder:
     def reset(self):
         self.step_logits = [None] * self.L
         self.step_xlayer = [None] * self.L
+        self.step_xvals = [None] * self.L
 
     def make_hook(self, li):
         def hook(mod, inp, out):
@@ -68,22 +69,27 @@ class Recorder:
                 assert torch.equal(mine.sort(-1).values, idx.to(mine.device).sort(-1).values), "stored logits do not reproduce the router's expert choice"
                 self._checked = True
             xl = torch.full((x2.shape[0], self.H, self.topk2), -1, dtype=torch.int16)
+            xv = torch.full((x2.shape[0], self.H, self.topk2), float("-inf"), dtype=torch.float16)
             for d in range(1, self.H + 1):
                 if li + d < self.L:
                     lg = x2.float() @ self.W[li + d].float().T
-                    xl[:, d - 1, :] = lg.topk(self.topk2, dim=-1).indices.to(torch.int16).cpu()
+                    top = lg.topk(self.topk2, dim=-1)
+                    xl[:, d - 1, :] = top.indices.to(torch.int16).cpu()
+                    xv[:, d - 1, :] = top.values.to(torch.float16).cpu()
             self.step_xlayer[li] = xl
+            self.step_xvals[li] = xv
         return hook
 
     def attach(self):
         self.handles = [r[2].register_forward_hook(self.make_hook(i)) for i, r in enumerate(self.routers)]
 
     def pop(self):
-        """Return (logits [T,L,E], xlayer [T,L,H,2k]) for the last forward and clear."""
+        """Return (logits [T,L,E], xlayer ids [T,L,H,2k], xlayer logits [T,L,H,2k]) for the last forward and clear."""
         lg = torch.stack(self.step_logits, dim=1)
         xl = torch.stack(self.step_xlayer, dim=1)
+        xv = torch.stack(self.step_xvals, dim=1)
         self.reset()
-        return lg, xl
+        return lg, xl, xv
 
 
 def load_prompts(workload, n, tok, max_prompt_tokens):
@@ -146,22 +152,22 @@ def main():
     prompts = load_prompts(args.workload, args.n_prompts, tok, args.max_prompt_tokens)
     print(f"workload={args.workload} prompts={len(prompts)}")
 
-    all_logits, all_xl, tok_ids, seq_ids, pos_ids, phases = [], [], [], [], [], []
+    all_logits, all_xl, all_xv, tok_ids, seq_ids, pos_ids, phases = [], [], [], [], [], [], []
     t0 = time.time()
     with torch.no_grad():
         for si, p in enumerate(prompts):
             ids = tok(p, return_tensors="pt").input_ids.to(args.device)
             out = model(input_ids=ids, use_cache=True)
-            lg, xl = rec.pop()
+            lg, xl, xv = rec.pop()
             T = ids.shape[1]
-            all_logits.append(lg); all_xl.append(xl)
+            all_logits.append(lg); all_xl.append(xl); all_xv.append(xv)
             tok_ids.append(ids[0].cpu()); seq_ids.append(torch.full((T,), si)); pos_ids.append(torch.arange(T)); phases.append(torch.zeros(T, dtype=torch.int8))
             past = out.past_key_values
             nxt = out.logits[:, -1].argmax(-1)
             for t in range(args.decode_tokens):
                 out = model(input_ids=nxt[:, None], past_key_values=past, use_cache=True)
-                lg, xl = rec.pop()
-                all_logits.append(lg); all_xl.append(xl)
+                lg, xl, xv = rec.pop()
+                all_logits.append(lg); all_xl.append(xl); all_xv.append(xv)
                 tok_ids.append(nxt.cpu()); seq_ids.append(torch.tensor([si])); pos_ids.append(torch.tensor([T + t])); phases.append(torch.ones(1, dtype=torch.int8))
                 past = out.past_key_values
                 nxt = out.logits[:, -1].argmax(-1)
@@ -173,12 +179,13 @@ def main():
 
     logits = torch.cat(all_logits).numpy()
     xlayer = torch.cat(all_xl).numpy()
+    xlayer_logits = torch.cat(all_xv).numpy()
     meta = dict(model=args.model, workload=args.workload, num_experts=int(E), topk=int(K), num_moe_layers=len(routers),
                 horizon=args.horizon, n_prompts=len(prompts), decode_tokens=args.decode_tokens,
                 router_names=[r[1] for r in routers], n_tokens=int(logits.shape[0]))
     out_path = args.out or f"traces/{args.model.split('/')[-1]}__{args.workload}.npz"
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    np.savez_compressed(out_path, logits=logits, xlayer=xlayer,
+    np.savez_compressed(out_path, logits=logits, xlayer=xlayer, xlayer_logits=xlayer_logits,
                         token_id=torch.cat(tok_ids).numpy().astype(np.int32), seq_id=torch.cat(seq_ids).numpy().astype(np.int32),
                         pos=torch.cat(pos_ids).numpy().astype(np.int32), phase=torch.cat(phases).numpy(), meta=json.dumps(meta))
     print(f"saved {out_path} tokens={logits.shape[0]} layers={logits.shape[1]} experts={logits.shape[2]} in {time.time()-t0:.0f}s")

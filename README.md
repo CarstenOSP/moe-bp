@@ -9,6 +9,12 @@ Preliminary trace testing for the 828 project.
 - `analysis/headroom.py` — headroom study over traces: usage skew, LRU caching, previous-token reuse,
   cross-layer router heuristic vs horizon, online counter-table predictors (bimodal, token-id, pairwise
   correlating, tournament), crude PCIe cost model, plots.
+- `predictors/tage.py` — TAGE-style predictor: pairwise base table plus tagged tables keyed on hashed
+  (token id, coarsened expert sets at 1/2/4 earlier layers); longest tag match wins, allocate on miss,
+  confidence + useful bits. Sweeps sizes and horizons in parallel and reports provider share/recall.
+- `predictors/fusion.py` — online fusion: ranks experts by a per-layer weighted sum of heuristic softmax,
+  pairwise votes and TAGE stored sets; weights learned online (multiplicative, no training). Reports
+  singles, an oracle-selection bound, and a confidence-threshold prefetch curve (recall vs experts fetched).
 - `traces/` — collected traces (gitignored). `results/` — analysis JSON, plots, and text logs.
 - `env/` — conda environment spec and pinned requirements. Prompts are read straight from the
   datasets' parquet files via `huggingface_hub`.
@@ -29,7 +35,15 @@ python analysis/headroom.py            # all OLMoE traces -> results/headroom_OL
 
 python collect/collect_traces.py --model deepseek-ai/DeepSeek-V2-Lite --workload gsm8k --n-prompts 40 --decode-tokens 128
 python analysis/headroom.py --traces traces/DeepSeek-V2-Lite__*.npz --expert-mb 17.3
+
+python predictors/tage.py --sizes-kb 16 64 256                      # OLMoE, default tables 1:4,2:2,4:1
+python predictors/tage.py --traces traces/DeepSeek-V2-Lite__*.npz --no-token --tables 1:8,2:4,4:2 --tag fine
+python predictors/tage.py --hit-thresh 1.0 --alloc-thresh 1.0 --alt-on-na --tag strict   # CPU-TAGE rules (worse here)
+
+python predictors/fusion.py                                          # OLMoE: heur+base, heur+base+tage, base+tage
+python predictors/fusion.py --traces traces/DeepSeek-V2-Lite__*.npz --eta 0.1
 ```
+Traces must contain `xlayer_logits` (collector versions from 2025-11-10 on) for `fusion.py`.
 Runs for different workloads are independent, so they can go on separate GPUs in parallel.
 Collected traces land in `traces/` (gitignored, ~50 MB per model-workload). Findings so far: `findings.md`.
 

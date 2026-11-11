@@ -19,7 +19,7 @@ def load(paths):
         z = np.load(p, allow_pickle=False)
         m = json.loads(str(z["meta"]))
         meta = meta or m
-        d = {k: z[k] for k in ["logits", "xlayer", "token_id", "seq_id", "pos", "phase"]}
+        d = {k: z[k] for k in ["logits", "xlayer", "token_id", "seq_id", "pos", "phase"] + [k for k in ["xlayer_logits"] if k in z]}
         d["seq_id"] = d["seq_id"] + seq_off
         seq_off = d["seq_id"].max() + 1
         d["workload"] = np.array([m["workload"]] * len(d["token_id"]))
